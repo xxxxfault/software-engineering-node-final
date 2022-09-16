@@ -2,13 +2,13 @@
  * @file Implements an Express Node HTTP server.
  */
 import express, {Request, Response} from 'express';
-var cors = require('cors')
+const cors = require('cors')
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 app.get('/', (req: Request, res: Response) =>
-    res.send('Welcome to Foundation of Software Engineering!'));
+    res.send('Welcome to Foundation of Software Engineering!!!!'));
 
 app.get('/hello', (req: Request, res: Response) =>
     res.send('Welcome to Foundation of Software Engineering!'));
