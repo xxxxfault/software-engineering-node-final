@@ -11,30 +11,22 @@ const cors = require('cors')
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    autoIndex: false,
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    family: 4
-}
-mongoose.connect('mongodb://localhost:27017/tuiter', options);
+app.use(express.urlencoded({extended: false}));
 
 app.get('/', (req: Request, res: Response) =>
-    res.send('Welcome to Foundation of Software Engineering!!!!'));
-app.get('/hello', (req: Request, res: Response) =>
-    res.send('Welcome to Foundation of Software Engineering!'));
+    res.send('<h1>App Loaded!</h1>'));
+
+const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
+mongoose.connect(uri);
+
 const userDao = new UserDao();
 const userController = new UserController(app, userDao);
 const tuitDao = new TuitDao();
 const tuitController = new TuitController(app, tuitDao);
 
 /**
- * Start a server listening at port 4000 locally
- * but use environment variable PORT on Heroku if available.
+ * Start a server listening at port 3000 locally
+ * but use environment variable PORT on AWS Elastic Beanstalk if available.
  */
-const PORT = 4000;
+const PORT = 3000;
 app.listen(process.env.PORT || PORT);
