@@ -1,3 +1,8 @@
+/**
+ * Enum for marital status.
+ * @readonly
+ * @enum {string}
+ */
 enum MaritalStatus {
     Married = 'MARRIED',
     Single = 'SINGLE',

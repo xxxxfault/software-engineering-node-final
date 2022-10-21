@@ -19,8 +19,8 @@ app.get('/', (req: Request, res: Response) =>
 const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
 mongoose.connect(uri);
 
-const userDao = new UserDao();
-const userController = new UserController(app, userDao);
+const userDao = UserDao.getInstance();
+const userController = UserController.getInstance(app);
 const tuitDao = new TuitDao();
 const tuitController = new TuitController(app, tuitDao);
 

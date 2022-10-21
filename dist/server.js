@@ -20,8 +20,8 @@ app.use(express_1.default.urlencoded({ extended: false }));
 app.get('/', (req, res) => res.send('<h1>App Loaded!</h1>'));
 const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
 mongoose_1.default.connect(uri);
-const userDao = new UserDao_1.default();
-const userController = new UserController_1.default(app, userDao);
+const userDao = UserDao_1.default.getInstance();
+const userController = UserController_1.default.getInstance(app);
 const tuitDao = new TuitDao_1.default();
 const tuitController = new TuitController_1.default(app, tuitDao);
 /**
