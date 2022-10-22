@@ -1,7 +1,7 @@
 import User from "../models/users/User";
 
 /**
- * Interface representing the user Data Access Object.
+ * Interface representing API for Users related data access object methods
  *
  * @interface
  */

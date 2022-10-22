@@ -12,45 +12,46 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Tuit_1 = __importDefault(require("../models/Tuit"));
-const TuitModel_1 = __importDefault(require("../mongoose/TuitModel"));
+/**
+ * @file Implements DAO managing data storage of tuits. Uses mongoose TuitModel
+ * to integrate with MongoDB
+ */
+const TuitModel_1 = __importDefault(require("../mongoose/tuits/TuitModel"));
+/**
+ * @class TuitDao Implements Data Access Object managing data storage
+ * of Users
+ * @property {TuitDao} tuitDao Private single instance of TuitDao
+ */
 class TuitDao {
-    findAllTuits() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.find();
+    constructor() {
+        this.findAllTuits = () => __awaiter(this, void 0, void 0, function* () {
+            return TuitModel_1.default.find()
+                .populate("postedBy")
+                .exec();
         });
-    }
-    ;
-    findTuitsByUser(uid) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.find({ postedBy: uid });
+        this.findAllTuitsByUser = (uid) => __awaiter(this, void 0, void 0, function* () {
+            return TuitModel_1.default.find({ postedBy: uid })
+                .populate("postedBy")
+                .exec();
         });
-    }
-    ;
-    findTuitById(tid) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.findById(tid);
+        this.findTuitById = (uid) => __awaiter(this, void 0, void 0, function* () {
+            return TuitModel_1.default.findById(uid)
+                .populate("postedBy")
+                .exec();
         });
-    }
-    ;
-    createTuit(tuit) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.create(tuit);
+        this.createTuitByUser = (uid, tuit) => __awaiter(this, void 0, void 0, function* () { return TuitModel_1.default.create(Object.assign(Object.assign({}, tuit), { postedBy: uid })); });
+        this.updateTuit = (uid, tuit) => __awaiter(this, void 0, void 0, function* () {
+            return TuitModel_1.default.updateOne({ _id: uid }, { $set: tuit });
         });
+        this.deleteTuit = (uid) => __awaiter(this, void 0, void 0, function* () { return TuitModel_1.default.deleteOne({ _id: uid }); });
     }
-    ;
-    updateTuit(tid, tuit) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.updateOne({ _id: tid }, { $set: Tuit_1.default });
-        });
-    }
-    ;
-    deleteTuit(tid) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield TuitModel_1.default.deleteOne({ _id: tid });
-        });
-    }
-    ;
 }
 exports.default = TuitDao;
+TuitDao.tuitDao = null;
+TuitDao.getInstance = () => {
+    if (TuitDao.tuitDao === null) {
+        TuitDao.tuitDao = new TuitDao();
+    }
+    return TuitDao.tuitDao;
+};
 //# sourceMappingURL=TuitDao.js.map
