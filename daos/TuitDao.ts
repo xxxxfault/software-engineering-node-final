@@ -28,16 +28,16 @@ export default class TuitDao implements TuitDaoI{
         TuitModel.find({postedBy: uid})
             .populate("postedBy")
             .exec();
-    findTuitById = async (uid: string): Promise<any> =>
-        TuitModel.findById(uid)
+    findTuitById = async (tid: string): Promise<any> =>
+        TuitModel.findById(tid)
             .populate("postedBy")
             .exec();
     createTuitByUser = async (uid: string, tuit: Tuit): Promise<Tuit> =>
         TuitModel.create({...tuit, postedBy: uid});
-    updateTuit = async (uid: string, tuit: Tuit): Promise<any> =>
+    updateTuit = async (tid: string, tuit: Tuit): Promise<any> =>
         TuitModel.updateOne(
-            {_id: uid},
+            {_id: tid},
             {$set: tuit});
-    deleteTuit = async (uid: string): Promise<any> =>
-        TuitModel.deleteOne({_id: uid});
+    deleteTuit = async (tid: string): Promise<any> =>
+        TuitModel.deleteOne({_id: tid});
 }

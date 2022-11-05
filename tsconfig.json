@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es6",
     "module": "commonjs",
     "outDir": "dist",
+    "target": "es6",
+    // Consider setting strict: true
     "sourceMap": true,
     "skipLibCheck": true,
     "esModuleInterop": true
