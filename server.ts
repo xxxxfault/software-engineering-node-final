@@ -1,47 +1,63 @@
 /**
  * @file Implements an Express Node HTTP server.
  */
-import LikeDao from "./daos/LikeDao";
-import UserDao from "./daos/UserDao";
-import TuitDao from "./daos/TuitDao";
-import LikeController from "./controllers/LikeController";
-import UserController from "./controllers/UserController";
-import TuitController from "./controllers/TuitController";
 import express, {Request, Response} from 'express';
 import mongoose from "mongoose";
-import FollowDao from "./daos/FollowDao";
-import FollowController from "./controllers/FollowController";
-import BookmarkDao from "./daos/BookmarkDao";
+import AuthController from "./controllers/AuthController";
 import BookmarkController from "./controllers/BookmarkController";
-import MessageDao from "./daos/MessageDao";
+import DislikeController from "./controllers/DislikeController";
+import FollowController from "./controllers/FollowController";
+import LikeController from "./controllers/LikeController";
 import MessageController from "./controllers/MessageController";
+import TuitController from "./controllers/TuitController";
+import UserController from "./controllers/UserController";
+const session = require('express-session');
 const cors = require('cors')
 const app = express();
-app.use(cors());
+// Sets the Access-Control-Allow-Origin response header to the req origin.
+const corsConfig = {
+    credentials: true,
+    origin: true,
+};
+app.use(cors(corsConfig));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 
-app.get('/', (req: Request, res: Response) =>
-    res.send('<h1>App Loaded!</h1>'));
+// Creates the session middleware.
+let sess = {
+    secret: process.env.SECRET,
+    cookie: {
+        secure: false,
+        resave: false,
+        saveUninitialized: false,
+        // Enables cross-site delivery between Netlify and Heroku.
+        sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
+    }
+}
+// Using default env variable on Heroku
+if (process.env.NODE_ENV == 'production') {
+    app.set('trust proxy', 1)
+    sess.cookie.secure = true
+}
+app.use(session(sess));
 
 const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
 mongoose.connect(uri);
 
-const userDao = UserDao.getInstance();
-const userController = UserController.getInstance(app);
-const tuitDao = TuitDao.getInstance();
-const tuitController = TuitController.getInstance(app);
-const likeDao = LikeDao.getInstance();
-const likeController = LikeController.getInstance(app);
-const followDao = FollowDao.getInstance();
-const followController = FollowController.getInstance(app);
-const bookmarkDao = BookmarkDao.getInstance();
-const bookmarkController = BookmarkController.getInstance(app);
-const messageDao = MessageDao.getInstance();
-const messageController = MessageController.getInstance(app);
+app.get('/', (req: Request, res: Response) =>
+    res.send('<h1>App Loaded!</h1>'));
+
+UserController.getInstance(app);
+TuitController.getInstance(app);
+LikeController.getInstance(app);
+DislikeController.getInstance(app);
+FollowController.getInstance(app);
+BookmarkController.getInstance(app);
+MessageController.getInstance(app);
+AuthController(app);
 
 /**
- * Start a server listening at port 3000 locally
+ * Start a server listening at port 4000 locally
  * but use environment variable PORT on AWS Elastic Beanstalk if available.
  */
 const PORT = 4000;
