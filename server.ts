@@ -2,7 +2,13 @@
  * @file Implements an Express Node HTTP server.
  */
 import express, {Request, Response} from 'express';
+const app = express();
+import AWS from "aws-sdk";
+import dotenv from "dotenv";
+dotenv.config();
+const session = require('express-session');
 import mongoose from "mongoose";
+
 import AuthController from "./controllers/AuthController";
 import BookmarkController from "./controllers/BookmarkController";
 import DislikeController from "./controllers/DislikeController";
@@ -11,10 +17,9 @@ import LikeController from "./controllers/LikeController";
 import MessageController from "./controllers/MessageController";
 import TuitController from "./controllers/TuitController";
 import UserController from "./controllers/UserController";
-const session = require('express-session');
-const cors = require('cors')
-const app = express();
+
 // Sets the Access-Control-Allow-Origin response header to the req origin.
+const cors = require('cors')
 const corsConfig = {
     credentials: true,
     origin: true,
@@ -22,6 +27,13 @@ const corsConfig = {
 app.use(cors(corsConfig));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
+
+// Configures and connects to AWS S3 image storage.
+export const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_S3_KEY_ID,
+    secretAccessKey: process.env.AWS_S3_KEY,
+    region: process.env.AWS_REGION
+});
 
 // Creates the session middleware.
 let sess = {
