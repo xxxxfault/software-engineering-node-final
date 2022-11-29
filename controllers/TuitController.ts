@@ -43,9 +43,10 @@ export default class TuitController implements TuitControllerI {
             app.get("/api/tuits", TuitController.tuitController.findAllTuits);
             app.get("/api/users/:uid/tuits", TuitController.tuitController.findAllTuitsByUser);
             app.get("/api/tuits/:tid", TuitController.tuitController.findTuitById);
-            app.post("/api/users/:uid/tuits", TuitController.upload.array("images"),
-                TuitController.tuitController.createTuitByUser);
-            app.put("/api/tuits/:tid", TuitController.tuitController.updateTuit);
+            app.post("/api/users/:uid/tuits", TuitController.upload.array("images")
+                , TuitController.tuitController.createTuitByUser);
+            app.put("/api/tuits/:tid", TuitController.upload.array("images")
+                , TuitController.tuitController.updateTuit);
             app.delete("/api/tuits/:tid", TuitController.tuitController.deleteTuit);
         }
         return TuitController.tuitController;
@@ -121,22 +122,53 @@ export default class TuitController implements TuitControllerI {
                 imageUrl.push(f.location);
                 imageUniqueName.push(f.key);
             });
-            const tuitWithImageUrls = {...(req.body), image: imageUrl};
+            const tuitWithImageInfo = {...(req.body), image: imageUrl};
 
-            TuitController.tuitDao.createTuitByUser(userId, tuitWithImageUrls)
+            TuitController.tuitDao.createTuitByUser(userId, tuitWithImageInfo)
                 .then((tuit: Tuit) => res.json(tuit));
         }
     }
 
     /**
-     * @param {Request} req Represents request from client, including path
-     * parameter tid identifying the primary key of the tuit to be modified
+     * @param {Request} req Represents request from client, including path parameter tid identifying
+     * the primary key of the tuit to be modified, body containing the new tuit text and files
+     * containing zero or more new tuit images.
      * @param {Response} res Represents response to client, including status
      * on whether updating a tuit was successful or not
      */
-    updateTuit = (req: Request, res: Response) =>
-        TuitController.tuitDao.updateTuit(req.params.tid, req.body)
-            .then((status) => res.send(status));
+    updateTuit = (req: any, res: any) => {
+        // Adds the URLs and unique S3 names of saved images to the tuit information.
+        const imageUrl = [];
+        const imageUniqueName = [];
+        req.files.forEach(f => {
+            imageUrl.push(f.location);
+            imageUniqueName.push(f.key);
+        });
+
+        // Deletes old tuit images.
+        TuitController.tuitDao.findTuitById(req.param.tid)
+            .then((tuit) => {
+                const params = {
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Objects: tuit.imageUniqueName,
+                    Quite: false
+                };
+                TuitController.s3Client.deleteObjects(params, function(err, data) {
+                    if (err) {
+                        console.log(err, err.stack);
+                        res.status(400).send("Error: Unable to update tuit images.");
+                    }
+                    else {
+                        // Updates the tuit document only after associated images are updated.
+                        const tuitWithImageInfo = {...(req.body)
+                            , image: imageUrl, imageUniqueName: imageUniqueName};
+
+                        TuitController.tuitDao.updateTuit(req.params.tid, tuitWithImageInfo)
+                            .then((status) => res.send(status));
+                    }
+                });
+            })
+    }
 
     /**
      * @param {Request} req Represents request from client, including path
