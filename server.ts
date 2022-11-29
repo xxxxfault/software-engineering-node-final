@@ -95,7 +95,7 @@ app.get('/', (req: Request, res: Response) =>
     res.send('<h1>App Loaded!</h1>'));
 
 UserController.getInstance(app);
-TuitController.getInstance(app, upload);
+TuitController.getInstance(app, upload, s3);
 LikeController.getInstance(app);
 DislikeController.getInstance(app);
 FollowController.getInstance(app);
