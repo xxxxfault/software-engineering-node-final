@@ -8,6 +8,9 @@ import dotenv from "dotenv";
 dotenv.config();
 const session = require('express-session');
 import mongoose from "mongoose";
+import multer from "multer";
+import multerS3 from "multer-s3";
+import path from "path";
 
 import AuthController from "./controllers/AuthController";
 import BookmarkController from "./controllers/BookmarkController";
@@ -35,7 +38,39 @@ export const s3 = new AWS.S3({
     region: process.env.AWS_REGION
 });
 
-// Creates the session middleware.
+// Configures the Multer middleware for receiving images on server and storing in the S3 bucket.
+const upload = multer({
+    // Indicates S3 bucket as the storage location to Multer.
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.AWS_BUCKET_NAME,
+
+        // Auto-detects file content type.
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+
+        // Uses form field name as file metadata.
+        metadata: function(req, file, cb) {
+            cb(null, { fieldName: file.fieldname });
+        },
+        // Generates a time-based file key.
+        key: function(req, file, cb) {
+            cb(null, new Date().toISOString() + '-' + file.originalname);
+        }
+    }),
+    // Filters for .jpeg, .jpg, .png files.
+    fileFilter: function(req, file, cb) {
+        const filetypes = /jpeg|jpg|png/;
+        const extnameIsValid = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetypeIsValid = filetypes.test(file.mimetype);
+        if (extnameIsValid && mimetypeIsValid) {
+            return cb(null, true);
+        } else {
+            cb("Error: Allow images only of extensions jpeg|jpg|png !");
+        }
+    }
+});
+
+// Configures the session middleware.
 let sess = {
     secret: process.env.SECRET,
     cookie: {
@@ -53,14 +88,14 @@ if (process.env.NODE_ENV == 'production') {
 }
 app.use(session(sess));
 
-const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.mongodbuser}:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
 mongoose.connect(uri);
 
 app.get('/', (req: Request, res: Response) =>
     res.send('<h1>App Loaded!</h1>'));
 
 UserController.getInstance(app);
-TuitController.getInstance(app);
+TuitController.getInstance(app, upload);
 LikeController.getInstance(app);
 DislikeController.getInstance(app);
 FollowController.getInstance(app);
@@ -69,8 +104,7 @@ MessageController.getInstance(app);
 AuthController(app);
 
 /**
- * Start a server listening at port 4000 locally
- * but use environment variable PORT on AWS Elastic Beanstalk if available.
+ * Starts the server.
  */
 const PORT = 4000;
 app.listen(process.env.PORT || PORT);

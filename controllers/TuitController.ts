@@ -10,8 +10,7 @@ import TuitControllerI from "../interfaces/TuitController";
  * @class TuitController Implements RESTful Web service API for tuits resource.
  * Defines the following HTTP endpoints:
  * <ul>
- *     <li>POST /api/users/:uid/tuits to create a new tuit instance for
- *     a given user</li>
+ *     <li>POST /api/users/:uid/tuits to create a new tuit instance for a given user</li>
  *     <li>GET /api/tuits to retrieve all the tuit instances</li>
  *     <li>GET /api/tuits/:tid to retrieve a particular tuit instances</li>
  *     <li>GET /api/users/:uid/tuits to retrieve tuits for a given user </li>
@@ -32,13 +31,15 @@ export default class TuitController implements TuitControllerI {
      * API
      * @return TuitController
      */
-    public static getInstance = (app: Express): TuitController => {
+    public static getInstance = (app: Express, upload: any): TuitController => {
+        console.log("Object type of multer upload: ", typeof upload);
         if(TuitController.tuitController === null) {
             TuitController.tuitController = new TuitController();
             app.get("/api/tuits", TuitController.tuitController.findAllTuits);
             app.get("/api/users/:uid/tuits", TuitController.tuitController.findAllTuitsByUser);
             app.get("/api/tuits/:tid", TuitController.tuitController.findTuitById);
-            app.post("/api/users/:uid/tuits", TuitController.tuitController.createTuitByUser);
+            app.post("/api/users/:uid/tuits", upload.array("images"),
+                TuitController.tuitController.createTuitByUser);
             app.put("/api/tuits/:tid", TuitController.tuitController.updateTuit);
             app.delete("/api/tuits/:tid", TuitController.tuitController.deleteTuit);
         }
@@ -92,8 +93,7 @@ export default class TuitController implements TuitControllerI {
 
     /**
      * @param {Request} req Represents request from client, including body
-     * containing the JSON object for the new tuit to be inserted in the
-     * database
+     * containing the new tuit text and files containing zero or more new tuit images.
      * @param {Response} res Represents response to client, including the
      * body formatted as JSON containing the new tuit that was inserted in the
      * database
@@ -109,7 +109,16 @@ export default class TuitController implements TuitControllerI {
             res.json({});
         }
         else {
-            TuitController.tuitDao.createTuitByUser(userId, req.body)
+            // Adds the URLs and unique S3 names of saved images to the tuit information.
+            const imageUrl = [];
+            const imageUniqueName = [];
+            req.files.forEach(f => {
+                imageUrl.push(f.location);
+                imageUniqueName.push(f.key);
+            });
+            const tuitWithImageUrls = {...(req.body), image: imageUrl};
+
+            TuitController.tuitDao.createTuitByUser(userId, tuitWithImageUrls)
                 .then((tuit: Tuit) => res.json(tuit));
         }
     }
