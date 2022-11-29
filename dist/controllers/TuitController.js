@@ -40,15 +40,27 @@ class TuitController {
          * @param {Response} res Represents response to client, including the
          * body formatted as JSON arrays containing the tuit objects
          */
-        this.findAllTuitsByUser = (req, res) => TuitController.tuitDao.findAllTuitsByUser(req.params.uid)
-            .then((tuits) => res.json(tuits));
+        this.findAllTuitsByUser = (req, res) => {
+            // If uid === "me", user ID should be retrieved from the current session instead of uid.
+            let userId = req.params.uid === "me" && req.session['profile']
+                ? req.session['profile']._id
+                : req.params.uid;
+            // If uid === "me" and there's no logged-in user, return empty JSON without Mongo error.
+            if (userId === "me") {
+                res.json({});
+            }
+            else {
+                TuitController.tuitDao.findAllTuitsByUser(userId)
+                    .then((tuits) => res.json(tuits));
+            }
+        };
         /**
          * @param {Request} req Represents request from client, including path
          * parameter tid identifying the primary key of the tuit to be retrieved
          * @param {Response} res Represents response to client, including the
          * body formatted as JSON containing the tuit that matches the user ID
          */
-        this.findTuitById = (req, res) => TuitController.tuitDao.findTuitById(req.params.uid)
+        this.findTuitById = (req, res) => TuitController.tuitDao.findTuitById(req.params.tid)
             .then((tuit) => res.json(tuit));
         /**
          * @param {Request} req Represents request from client, including body
@@ -58,15 +70,27 @@ class TuitController {
          * body formatted as JSON containing the new tuit that was inserted in the
          * database
          */
-        this.createTuitByUser = (req, res) => TuitController.tuitDao.createTuitByUser(req.params.uid, req.body)
-            .then((tuit) => res.json(tuit));
+        this.createTuitByUser = (req, res) => {
+            // If uid === "me", user ID should be retrieved from the current session instead of uid.
+            let userId = req.params.uid === "me" && req.session['profile']
+                ? req.session['profile']._id
+                : req.params.uid;
+            // If uid === "me" and there's no logged-in user, return empty JSON without Mongo error.
+            if (userId === "me") {
+                res.json({});
+            }
+            else {
+                TuitController.tuitDao.createTuitByUser(userId, req.body)
+                    .then((tuit) => res.json(tuit));
+            }
+        };
         /**
          * @param {Request} req Represents request from client, including path
          * parameter tid identifying the primary key of the tuit to be modified
          * @param {Response} res Represents response to client, including status
          * on whether updating a tuit was successful or not
          */
-        this.updateTuit = (req, res) => TuitController.tuitDao.updateTuit(req.params.uid, req.body)
+        this.updateTuit = (req, res) => TuitController.tuitDao.updateTuit(req.params.tid, req.body)
             .then((status) => res.send(status));
         /**
          * @param {Request} req Represents request from client, including path
@@ -74,7 +98,7 @@ class TuitController {
          * @param {Response} res Represents response to client, including status
          * on whether deleting a user was successful or not
          */
-        this.deleteTuit = (req, res) => TuitController.tuitDao.deleteTuit(req.params.uid)
+        this.deleteTuit = (req, res) => TuitController.tuitDao.deleteTuit(req.params.tid)
             .then((status) => res.send(status));
     }
 }
@@ -92,10 +116,10 @@ TuitController.getInstance = (app) => {
         TuitController.tuitController = new TuitController();
         app.get("/api/tuits", TuitController.tuitController.findAllTuits);
         app.get("/api/users/:uid/tuits", TuitController.tuitController.findAllTuitsByUser);
-        app.get("/api/tuits/:uid", TuitController.tuitController.findTuitById);
+        app.get("/api/tuits/:tid", TuitController.tuitController.findTuitById);
         app.post("/api/users/:uid/tuits", TuitController.tuitController.createTuitByUser);
-        app.put("/api/tuits/:uid", TuitController.tuitController.updateTuit);
-        app.delete("/api/tuits/:uid", TuitController.tuitController.deleteTuit);
+        app.put("/api/tuits/:tid", TuitController.tuitController.updateTuit);
+        app.delete("/api/tuits/:tid", TuitController.tuitController.deleteTuit);
     }
     return TuitController.tuitController;
 };

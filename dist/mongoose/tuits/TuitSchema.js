@@ -1,11 +1,7 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -36,9 +32,10 @@ const TuitSchema = new mongoose_1.default.Schema({
     avatarLogo: String,
     imageOverlay: String,
     stats: {
-        replies: Number,
-        retuits: Number,
-        likes: Number
+        replies: { type: Number, default: 0 },
+        retuits: { type: Number, default: 0 },
+        likes: { type: Number, default: 0 },
+        dislikes: { type: Number, default: 0 }
     }
 }, { collection: "tuits" });
 exports.default = TuitSchema;

@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const LikeModel_1 = __importDefault(require("../mongoose/likes/LikeModel"));
 const UserModel_1 = __importDefault(require("../mongoose/users/UserModel"));
-const TuitModel_1 = __importDefault(require("../mongoose/tuits/TuitModel"));
 /**
  * @class LikeDao Implements Data Access Object managing data storage
  * of Likes
@@ -38,19 +37,15 @@ class LikeDao {
             });
         });
         this.findAllTuitsLikedByUser = (uid) => __awaiter(this, void 0, void 0, function* () {
-            return LikeModel_1.default.
-                find({ likedBy: uid }).
-                then(likes => {
-                let res = [];
-                for (const l of likes) {
-                    res.push(l.tuit);
+            return LikeModel_1.default
+                .find({ likedBy: uid })
+                .populate({
+                path: 'tuit',
+                populate: {
+                    path: 'postedBy'
                 }
-                return TuitModel_1.default.
-                    find({ _id: {
-                        $in: res
-                    } }).
-                    exec();
-            });
+            })
+                .exec();
         });
         this.findTuitLikesCount = (tid) => // (tid: string):
          __awaiter(this, void 0, void 0, function* () {
@@ -60,6 +55,7 @@ class LikeDao {
         });
         this.userLikesTuit = (uid, tid) => __awaiter(this, void 0, void 0, function* () { return LikeModel_1.default.create({ tuit: tid, likedBy: uid }); });
         this.userUnlikesTuit = (uid, tid) => __awaiter(this, void 0, void 0, function* () { return LikeModel_1.default.deleteOne({ tuit: tid, likedBy: uid }); });
+        this.findUserLikesTuit = (uid, tid) => __awaiter(this, void 0, void 0, function* () { return LikeModel_1.default.findOne({ tuit: tid, likedBy: uid }); });
     }
 }
 exports.default = LikeDao;
