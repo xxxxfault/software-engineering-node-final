@@ -122,7 +122,8 @@ export default class TuitController implements TuitControllerI {
                 imageUrl.push(f.location);
                 imageUniqueName.push(f.key);
             });
-            const tuitWithImageInfo = {...(req.body), image: imageUrl};
+            const tuitWithImageInfo = {...(req.body), image: imageUrl
+                , imageUniqueName: imageUniqueName};
 
             TuitController.tuitDao.createTuitByUser(userId, tuitWithImageInfo)
                 .then((tuit: Tuit) => res.json(tuit));
@@ -146,12 +147,16 @@ export default class TuitController implements TuitControllerI {
         });
 
         // Deletes old tuit images.
-        TuitController.tuitDao.findTuitById(req.param.tid)
+        TuitController.tuitDao.findTuitById(req.params.tid)
             .then((tuit) => {
+                const imagesToDelete = [];
+                tuit["imageUniqueName"].forEach(k => imagesToDelete.push({Key: k}));
                 const params = {
                     Bucket: process.env.AWS_BUCKET_NAME,
-                    Objects: tuit.imageUniqueName,
-                    Quite: false
+                    Delete: {
+                        Objects: imagesToDelete,
+                        Quiet: false
+                    }
                 };
                 TuitController.s3Client.deleteObjects(params, function(err, data) {
                     if (err) {
@@ -184,8 +189,10 @@ export default class TuitController implements TuitControllerI {
                 tuit["imageUniqueName"].forEach(k => imagesToDelete.push({Key: k}));
                 const params = {
                     Bucket: process.env.AWS_BUCKET_NAME,
-                    Objects: imagesToDelete,
-                    Quite: false
+                    Delete: {
+                        Objects: imagesToDelete,
+                        Quiet: false
+                    }
                 };
                 TuitController.s3Client.deleteObjects(params, function(err, data) {
                     if (err) {
