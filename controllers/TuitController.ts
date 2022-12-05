@@ -3,15 +3,14 @@
  */
 import TuitDao from "../daos/TuitDao";
 import Tuit from "../models/tuits/Tuit";
-import {Express, Request, Response} from "express";
+import { Express, Request, Response } from "express";
 import TuitControllerI from "../interfaces/TuitController";
 
 /**
  * @class TuitController Implements RESTful Web service API for tuits resource.
  * Defines the following HTTP endpoints:
  * <ul>
- *     <li>POST /api/users/:uid/tuits to create a new tuit instance for
- *     a given user</li>
+ *     <li>POST /api/users/:uid/tuits to create a new tuit instance for a given user</li>
  *     <li>GET /api/tuits to retrieve all the tuit instances</li>
  *     <li>GET /api/tuits/:tid to retrieve a particular tuit instances</li>
  *     <li>GET /api/users/:uid/tuits to retrieve tuits for a given user </li>
@@ -21,10 +20,14 @@ import TuitControllerI from "../interfaces/TuitController";
  * @property {TuitDao} tuitDao Singleton DAO implementing tuit CRUD operations
  * @property {TuitController} tuitController Singleton controller implementing
  * RESTful Web service API
+ * @property {any} upload Singleton Multer upload middleware
+ * @property {any} s3Client Singleton connected AWS S3 client
  */
 export default class TuitController implements TuitControllerI {
     private static tuitDao: TuitDao = TuitDao.getInstance();
     private static tuitController: TuitController | null = null;
+    private static upload: any;
+    private static s3Client: any;
 
     /**
      * Creates singleton controller instance
@@ -32,20 +35,24 @@ export default class TuitController implements TuitControllerI {
      * API
      * @return TuitController
      */
-    public static getInstance = (app: Express): TuitController => {
-        if(TuitController.tuitController === null) {
+    public static getInstance = (app: Express, upload: any, s3: any): TuitController => {
+        if (TuitController.tuitController === null) {
             TuitController.tuitController = new TuitController();
+            TuitController.upload = upload;
+            TuitController.s3Client = s3;
             app.get("/api/tuits", TuitController.tuitController.findAllTuits);
             app.get("/api/users/:uid/tuits", TuitController.tuitController.findAllTuitsByUser);
             app.get("/api/tuits/:tid", TuitController.tuitController.findTuitById);
-            app.post("/api/users/:uid/tuits", TuitController.tuitController.createTuitByUser);
-            app.put("/api/tuits/:tid", TuitController.tuitController.updateTuit);
+            app.post("/api/users/:uid/tuits", TuitController.upload.array("images")
+                , TuitController.tuitController.createTuitByUser);
+            app.put("/api/tuits/:tid", TuitController.upload.array("images")
+                , TuitController.tuitController.updateTuit);
             app.delete("/api/tuits/:tid", TuitController.tuitController.deleteTuit);
         }
         return TuitController.tuitController;
     }
 
-    private constructor() {}
+    private constructor() { }
 
     /**
      * Retrieves all tuits from the database and returns an array of tuits.
@@ -92,8 +99,7 @@ export default class TuitController implements TuitControllerI {
 
     /**
      * @param {Request} req Represents request from client, including body
-     * containing the JSON object for the new tuit to be inserted in the
-     * database
+     * containing the new tuit text and files containing zero or more new tuit images.
      * @param {Response} res Represents response to client, including the
      * body formatted as JSON containing the new tuit that was inserted in the
      * database
@@ -109,20 +115,69 @@ export default class TuitController implements TuitControllerI {
             res.json({});
         }
         else {
-            TuitController.tuitDao.createTuitByUser(userId, req.body)
+            // Adds the URLs and unique S3 names of saved images to the tuit information.
+            const imageUrl = [];
+            const imageUniqueName = [];
+            req.files.forEach(f => {
+                imageUrl.push(f.location);
+                imageUniqueName.push(f.key);
+            });
+            const tuitWithImageInfo = {
+                ...(req.body), image: imageUrl
+                , imageUniqueName: imageUniqueName
+            };
+
+            TuitController.tuitDao.createTuitByUser(userId, tuitWithImageInfo)
                 .then((tuit: Tuit) => res.json(tuit));
         }
     }
 
     /**
-     * @param {Request} req Represents request from client, including path
-     * parameter tid identifying the primary key of the tuit to be modified
+     * @param {Request} req Represents request from client, including path parameter tid identifying
+     * the primary key of the tuit to be modified, body containing the new tuit text and files
+     * containing zero or more new tuit images.
      * @param {Response} res Represents response to client, including status
      * on whether updating a tuit was successful or not
      */
-    updateTuit = (req: Request, res: Response) =>
-        TuitController.tuitDao.updateTuit(req.params.tid, req.body)
-            .then((status) => res.send(status));
+    updateTuit = (req: any, res: any) => {
+        // Adds the URLs and unique S3 names of saved images to the tuit information.
+        const imageUrl = [];
+        const imageUniqueName = [];
+        req.files.forEach(f => {
+            imageUrl.push(f.location);
+            imageUniqueName.push(f.key);
+        });
+
+        // Deletes old tuit images.
+        TuitController.tuitDao.findTuitById(req.params.tid)
+            .then((tuit) => {
+                const imagesToDelete = [];
+                tuit["imageUniqueName"].forEach(k => imagesToDelete.push({ Key: k }));
+                const params = {
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Delete: {
+                        Objects: imagesToDelete,
+                        Quiet: false
+                    }
+                };
+                TuitController.s3Client.deleteObjects(params, function (err, data) {
+                    if (err) {
+                        console.log(err, err.stack);
+                        res.status(400).send("Error: Unable to update tuit images.");
+                    }
+                    else {
+                        // Updates the tuit document only after associated images are updated.
+                        const tuitWithImageInfo = {
+                            ...(req.body)
+                            , image: imageUrl, imageUniqueName: imageUniqueName
+                        };
+
+                        TuitController.tuitDao.updateTuit(req.params.tid, tuitWithImageInfo)
+                            .then((status) => res.send(status));
+                    }
+                });
+            })
+    }
 
     /**
      * @param {Request} req Represents request from client, including path
@@ -130,7 +185,31 @@ export default class TuitController implements TuitControllerI {
      * @param {Response} res Represents response to client, including status
      * on whether deleting a user was successful or not
      */
-    deleteTuit = (req: Request, res: Response) =>
-        TuitController.tuitDao.deleteTuit(req.params.tid)
-            .then((status) => res.send(status));
+    deleteTuit = (req: Request, res: Response) => {
+        TuitController.tuitDao.findTuitById(req.params.tid)
+            .then(tuit => {
+                // Removes tuit-associated images from AWS S3.
+                const imagesToDelete = [];
+                tuit["imageUniqueName"].forEach(k => imagesToDelete.push({ Key: k }));
+                const params = {
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Delete: {
+                        Objects: imagesToDelete,
+                        Quiet: false
+                    }
+                };
+                TuitController.s3Client.deleteObjects(params, function (err, data) {
+                    if (err) {
+                        console.log(err, err.stack);
+                        res.status(400).send("Error: Unable to delete tuit images.");
+                    }
+                    else {
+                        // Deletes the tuit only after associated images are deleted.
+                        TuitController.tuitDao.deleteTuit(req.params.tid)
+                            .then((status) => res.send(status));
+                    }
+                });
+            }
+            );
+    }
 };
