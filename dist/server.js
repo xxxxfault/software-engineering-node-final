@@ -28,16 +28,14 @@ app.use(cors(corsConfig));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: false }));
 // Creates the session middleware.
-// TODO: Resets secret key before deployment. process.env.SECRET
-// TODO: Resets sameSite setting before deployment.
 let sess = {
-    secret: "Keyboard Mouse",
+    secret: process.env.SECRET,
     cookie: {
         secure: false,
         resave: false,
         saveUninitialized: false,
         // Enables cross-site delivery between Netlify and Heroku.
-        // sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
+        sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
     }
 };
 // Using default env variable on Heroku
@@ -46,8 +44,7 @@ if (process.env.NODE_ENV == 'production') {
     sess.cookie.secure = true;
 }
 app.use(session(sess));
-// TODO: Resets MongoDB password before deployment. ${process.env.mongodbpw}
-const uri = `mongodb+srv://lwang369:aZ22J_LFSAZTFkP@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://lwang369:${process.env.mongodbpw}@cluster0.xwyngvl.mongodb.net/?retryWrites=true&w=majority`;
 mongoose_1.default.connect(uri);
 app.get('/', (req, res) => res.send('<h1>App Loaded!</h1>'));
 UserController_1.default.getInstance(app);
