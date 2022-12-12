@@ -1,5 +1,9 @@
 
 ## Frontend
+
+## GitHub
+https://github.com/xxxxfault/software-engineering-react-final
+
 # React App is deployed on Netlify:
 https://main--rad-twilight-59eb8c.netlify.app/
 
@@ -26,6 +30,10 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 
 ## Backend
+
+## GitHub
+https://github.com/xxxxfault/software-engineering-node-final
+
 # Node App is deployed on Heroku:
 https://fse-node-final.herokuapp.com/
 
