@@ -1,13 +1,13 @@
 
-## Frontend
+# Frontend
 
-## GitHub
+### GitHub
 https://github.com/xxxxfault/software-engineering-react-final
 
-# React App is deployed on Netlify:
+### React App is deployed on Netlify:
 https://main--rad-twilight-59eb8c.netlify.app/
 
-## Available Scripts
+### Available Scripts
 
 In the project directory, you can run:
 
@@ -29,15 +29,15 @@ Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
 
-## Backend
+# Backend
 
-## GitHub
+### GitHub
 https://github.com/xxxxfault/software-engineering-node-final
 
-# Node App is deployed on Heroku:
+### Node App is deployed on Heroku:
 https://fse-node-final.herokuapp.com/
 
-## Available Scripts
+### Available Scripts
 
 In the project directory, you can run:
 
