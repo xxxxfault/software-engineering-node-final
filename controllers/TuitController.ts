@@ -191,24 +191,32 @@ export default class TuitController implements TuitControllerI {
                 // Removes tuit-associated images from AWS S3.
                 const imagesToDelete = [];
                 tuit["imageUniqueName"].forEach(k => imagesToDelete.push({ Key: k }));
-                const params = {
-                    Bucket: process.env.AWS_BUCKET_NAME,
-                    Delete: {
-                        Objects: imagesToDelete,
-                        Quiet: false
-                    }
-                };
-                TuitController.s3Client.deleteObjects(params, function (err, data) {
-                    if (err) {
-                        console.log(err, err.stack);
-                        res.status(400).send("Error: Unable to delete tuit images.");
-                    }
-                    else {
-                        // Deletes the tuit only after associated images are deleted.
-                        TuitController.tuitDao.deleteTuit(req.params.tid)
-                            .then((status) => res.send(status));
-                    }
-                });
+                if (imagesToDelete.length == 0) {
+                    // Deletes the tuit directly if no associated images.
+                    TuitController.tuitDao.deleteTuit(req.params.tid)
+                        .then((status) => res.send(status));
+                }
+                else {
+                    // Deletes the associated images first if present.
+                    const params = {
+                        Bucket: process.env.AWS_BUCKET_NAME,
+                        Delete: {
+                            Objects: imagesToDelete,
+                            Quiet: false
+                        }
+                    };
+                    TuitController.s3Client.deleteObjects(params, function (err, data) {
+                        if (err) {
+                            console.log(err, err.stack);
+                            res.status(400).send("Error: Unable to delete tuit images.");
+                        }
+                        else {
+                            // Deletes the tuit only after associated images are deleted.
+                            TuitController.tuitDao.deleteTuit(req.params.tid)
+                                .then((status) => res.send(status));
+                        }
+                    });
+                }
             }
             );
     }
